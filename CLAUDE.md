@@ -1,4 +1,6 @@
-# sard
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## プロジェクト概要
 
@@ -17,27 +19,11 @@
 
 ## アーキテクチャ
 
-2層構成:
+2層構成。依存方向は **Framework → Core** の一方向のみ（Core は Framework を import しない）。
 
-- **Core Library**（`sard.core`）: ドメイン非依存の部品群。QueryEngine, SchemaValidator, Provenance, DAGBuilder
-- **Framework**（`sard.framework`）: 規約の強制。DataStore（ファサード）, StageContext, Discovery, Generator
-
-```text
-src/sard/
-├── core/           ← ドメイン非依存（axes.yaml等の語彙を知らない）
-│   ├── models.py
-│   ├── query_engine.py
-│   ├── schema_validator.py
-│   ├── provenance.py
-│   └── dag_builder.py
-├── framework/      ← 規約の強制（stages/, config/ 等を解釈）
-│   ├── datastore.py
-│   ├── stage_context.py
-│   ├── generator.py
-│   └── discovery.py
-└── cli/            ← CLIエントリポイント
-    └── main.py
-```
+- **Core Library**（`sard.core`）: ドメイン非依存の部品群。axes.yaml 等のプロジェクト固有語彙を知らない。QueryEngine, SchemaValidator, Provenance, DAGBuilder
+- **Framework**（`sard.framework`）: 規約の強制。Core を組み合わせて stages/, config/ 等の規約を解釈する。DataStore（ファサード）, StageContext, Discovery, Generator
+- **CLI**（`sard.cli`）: CLI エントリポイント。Framework を呼び出す薄いレイヤー
 
 ## 設計原則
 
@@ -51,34 +37,29 @@ src/sard/
 ```bash
 uv sync                      # 依存インストール
 uv run pre-commit install    # フック有効化
-uv run pytest                # テスト
+uv run pytest                # 全テスト実行
+uv run pytest tests/test_foo.py            # 単一ファイル
+uv run pytest tests/test_foo.py::test_bar  # 単一テスト
+uv run pytest -k "keyword"                 # キーワードで絞り込み
 uv run pyright               # 型チェック
 ```
+
+依存の追加・削除は `uv add` / `uv remove` を使用（pyproject.toml を手書き編集しない）。
 
 ## ツール設定
 
 設定ファイルは `.config/` に集約:
 
-- `.config/ruff.toml` — Ruff（Python lint/format）
+- `.config/ruff.toml` — Ruff（lint/format, Python 3.11, line-length 88）
 - `.config/.prettierrc` — Prettier（Markdown, YAML, JSON, TOML）
 - `.config/.markdownlint.jsonc` — markdownlint
-- `pyproject.toml [tool.pyright]` — pyright
+- `pyproject.toml [tool.pyright]` — pyright（standard モード）
 
-## 依存ライブラリ
+## pre-commit フック
 
-### ランタイム
+コミット時に以下が自動実行される:
 
-- `duckdb` — インメモリクエリエンジン
-- `polars` — DataFrame操作（イミュータブル・Arrow形式でDuckDBとゼロコピー連携）
-- `pydantic` — 設定・スキーマのランタイムバリデーション
-- `pandera` — DataFrameバリデーション
-- `networkx` — DAG構造の構築・走査・検証
-- `dvc` — データバージョン管理・パイプライン実行
-- `ruamel.yaml` — YAML 1.2パーサー（ラウンドトリップ保存）
-- `typer` — CLIフレームワーク
-
-### 開発
-
-- `pre-commit` — コミット時の自動チェック
-- `pyright` — 静的型チェック
-- `pytest` + `pytest-cov` — テスト・カバレッジ
+- **Prettier** — Markdown, JSON, YAML, TOML のフォーマット
+- **Ruff** — Python の lint（`--fix`）+ format
+- **markdownlint-cli2** — Markdown lint
+- **pre-commit-hooks** — 末尾空白除去、ファイル末尾改行、改行コード LF 統一
