@@ -69,8 +69,8 @@ stages:
             - stages/normalize/run.py
             - data/stages/import/timeseries.parquet
             - data/stages/import/dtype.parquet
-            - data/stages/import/record.parquet
-            - config/table_schemas/timeseries.yaml
+            - data/stages/import/record.parquet # レコード識別軸(uid階層)の定義テーブル
+            - config/table_schemas/timeseries.yaml # テーブルのカラム名・型・制約定義
         params:
             - stages/normalize/stage.yaml:
                   - params

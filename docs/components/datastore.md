@@ -86,8 +86,11 @@ df = store.query(
 
 ### 低レベルAPI（connection）
 
+`connection()` はクエリエンジンへの直接接続を返す。VIEW 設定済みの状態で取得できるため、任意の SQL を実行可能。
+
 ```python
-con = store.connection()  # クエリエンジン接続（VIEW設定済み）
+con = store.connection()
+
 df = con.sql("""
     SELECT t.uid, t.frame, t.value
     FROM timeseries t
