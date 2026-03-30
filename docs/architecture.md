@@ -51,14 +51,14 @@ QueryEngine は Protocol として定義し、DuckDB実装はその1つの実装
 
 ### フレームワーク固定 vs プロジェクト設定
 
-| 区分               | 内容                                                                                                                                           |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| フレームワーク固定 | outs 統一スキーマ（path + add_datastore）、dtype レジストリの存在、stage の概念、DuckDB over files クエリエンジン、DataStore クラスの query IF |
-| プロジェクト設定   | record_key 階層、dtype 属性カラム、テーブルスキーマ定義（config/table_schemas/）、stage 名、ファイル配置規約                                   |
+| 区分               | 内容                                                                                                                                                                                                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| フレームワーク固定 | [outs 統一スキーマ](components/stage.md#outs-統一スキーマ)（path + add_datastore）、[dtype レジストリ](components/stage.md#dtype-レジストリ管理)の存在、stage の概念、DuckDB over files クエリエンジン、DataStore クラスの query IF |
+| プロジェクト設定   | record_key 階層、dtype 属性カラム、テーブルスキーマ定義（config/table_schemas/）、stage 名、ファイル配置規約                                                                                                                        |
 
 ### 不変性の保証
 
-不変性は設計原則として掲げるが、Pythonの制約上、構造的強制は採用しない。DataStore の書き込み対象を自ステージの宣言済み outs に限定し、run_stage エピローグでの期待外変更検出 + エラー報告 + DVC復元で保証する。
+不変性は設計原則として掲げるが、Pythonの制約上、構造的強制は採用しない。[DataStore の書き込み](components/datastore.md#書き込み)対象を自ステージの宣言済み outs に限定し、[run_stage エピローグでの検証](components/stage.md#post-run-検証)（期待外変更検出 + エラー報告）+ DVC復元で保証する。
 
 ## 概念モデル
 
@@ -111,26 +111,26 @@ DVC Experimentsは現時点では採用しない。run_meta.yaml が提供する
 
 ## 要求マッピング
 
-| 要求                        | 実現手段                                          |
-| --------------------------- | ------------------------------------------------- |
-| I-1 単一AP                  | DataStore クラスが唯一のアクセスポイント          |
-| I-2 多軸スライス            | DataStore.query() + DuckDB SQL                    |
-| I-3 一意参照                | 識別軸属性の組み合わせで一意特定                  |
-| I-4 DAG紐づき一覧性         | DAGマップ生成ツール（stage.yaml から生成）        |
-| I-5 異質データ共存          | format ディスパッチ（Parquet/CSV/pickle/npy）     |
-| I-6 管理境界IF              | StageInfo + DataStore + run_stage が提供          |
-| II-1 DAG整合性              | DVC の deps/outs 追跡                             |
-| II-2 スナップショット再現性 | DVC + Git                                         |
-| II-3 有効性管理             | dvc status + stage.yaml status + inactive 伝搬    |
-| II-4 部分再生成             | dvc repro（影響部分木のみ）                       |
-| II-5 パラメータ追跡         | stage.yaml の params + DVC params 追跡 + run_meta |
-| III-1 格納中立性            | format ディスパッチ                               |
-| III-2 拡張性                | ステージ追加 = ディレクトリ追加                   |
-| III-3 意味到達性            | description 3層構造                               |
-| IV-1 スナップショット分岐   | Git ブランチ + DVC                                |
-| IV-2 DAG間合成              | dvc import + DataStore.from_external()            |
-| V-1 プロセス切り出し        | ステージ単位のモジュラリティ                      |
-| V-2 解析と出力の分離        | ステージ設計による分離                            |
+| 要求                        | 実現手段                                                                                           |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| I-1 単一AP                  | DataStore クラスが唯一のアクセスポイント                                                           |
+| I-2 多軸スライス            | DataStore.query() + DuckDB SQL                                                                     |
+| I-3 一意参照                | 識別軸属性の組み合わせで一意特定                                                                   |
+| I-4 DAG紐づき一覧性         | DAGマップ生成ツール（stage.yaml から生成）                                                         |
+| I-5 異質データ共存          | format ディスパッチ（Parquet/CSV/pickle/npy）                                                      |
+| I-6 管理境界IF              | [StageInfo + DataStore + run_stage](components/stage.md#実行モデル) が管理下/管理外の境界APIを提供 |
+| II-1 DAG整合性              | DVC の deps/outs 追跡                                                                              |
+| II-2 スナップショット再現性 | DVC + Git                                                                                          |
+| II-3 有効性管理             | dvc status + stage.yaml status + inactive 伝搬                                                     |
+| II-4 部分再生成             | dvc repro（影響部分木のみ）                                                                        |
+| II-5 パラメータ追跡         | stage.yaml の params + DVC params 追跡 + run_meta                                                  |
+| III-1 格納中立性            | format ディスパッチ                                                                                |
+| III-2 拡張性                | ステージ追加 = ディレクトリ追加                                                                    |
+| III-3 意味到達性            | description 3層構造                                                                                |
+| IV-1 スナップショット分岐   | Git ブランチ + DVC                                                                                 |
+| IV-2 DAG間合成              | dvc import + DataStore.from_external()                                                             |
+| V-1 プロセス切り出し        | ステージ単位のモジュラリティ                                                                       |
+| V-2 解析と出力の分離        | ステージ設計による分離                                                                             |
 
 ## 情報所在マップ
 
