@@ -16,7 +16,8 @@ src/sard/
 │   └── dag_builder.py
 ├── framework/      ← 規約の強制（stages/, config/ 等を解釈）
 │   ├── datastore.py
-│   ├── stage_context.py
+│   ├── stage_info.py
+│   ├── run_stage.py
 │   ├── generator.py
 │   └── discovery.py
 └── cli/            ← CLIエントリポイント
@@ -57,7 +58,7 @@ QueryEngine は Protocol として定義し、DuckDB実装はその1つの実装
 
 ### 不変性の保証
 
-不変性は設計原則として掲げるが、Pythonの制約上、構造的強制は採用しない。StageContextによる出力先限定と、post-runでの期待外変更検出 + エラー報告 + DVC復元で保証する。
+不変性は設計原則として掲げるが、Pythonの制約上、構造的強制は採用しない。DataStore の書き込み対象を自ステージの宣言済み outs に限定し、run_stage エピローグでの期待外変更検出 + エラー報告 + DVC復元で保証する。
 
 ## 概念モデル
 
@@ -117,7 +118,7 @@ DVC Experimentsは現時点では採用しない。run_meta.yaml が提供する
 | I-3 一意参照                | 識別軸属性の組み合わせで一意特定                  |
 | I-4 DAG紐づき一覧性         | DAGマップ生成ツール（stage.yaml から生成）        |
 | I-5 異質データ共存          | format ディスパッチ（Parquet/CSV/pickle/npy）     |
-| I-6 管理境界IF              | StageContext が提供                               |
+| I-6 管理境界IF              | StageInfo + DataStore + run_stage が提供          |
 | II-1 DAG整合性              | DVC の deps/outs 追跡                             |
 | II-2 スナップショット再現性 | DVC + Git                                         |
 | II-3 有効性管理             | dvc status + stage.yaml status + inactive 伝搬    |
@@ -146,6 +147,7 @@ DVC Experimentsは現時点では採用しない。run_meta.yaml が提供する
 | 実行メタ（run_meta）     | stages/xxx/run_meta.yaml                  | Git管理。run_id・deps_runs・パラメータスナップショット・ハッシュ |
 | 外部依存（extra_deps）   | stages/xxx/stage.yaml                     | extra_deps セクション                                            |
 | 処理コード               | stages/xxx/run.py                         | エントリポイント                                                 |
+| 全体カタログ             | docs/dtype_catalog.md                     | `sard catalog` で自動生成、Git管理                               |
 
 ## 未解決事項
 
