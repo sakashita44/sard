@@ -51,8 +51,8 @@ class DataStore:
         # 1. config/ からテーブルスキーマ定義を読み込み
         # 2. 全ステージの stage.yaml の outs を走査
         # 3. add_datastore: true のエントリを収集し、同名テーブルを UNION ALL で VIEW 化
-        # 4. テーブルスキーマに基づくバリデーション
-        # 5. constraints 検証（UNION ALL 後のキー一意性等）
+        # 4. DDL に基づくスキーマバリデーション
+        # 5. DDL 制約検証（UNION ALL 後のキー一意性等）
 
     def scoped(self, up_to: list[str]) -> "DataStore":
         """スコープ付き読み取り専用ビューインスタンスを返す。
@@ -119,35 +119,38 @@ store.write_table("timeseries", result, stage=stage)
 
 ### バリデーション（書き込み時）
 
-- **スキーマ整合性**: `config/table_schemas/` の定義とカラム名・型が一致するか
-- **制約検証**: primary_key / unique 等の制約に違反するデータがないか
-- **NULL・型チェック**: required カラムの NULL 欠損、型不一致
+- **DDL 整合性**: `config/table_schemas/` の DDL 定義とカラム名・型が一致するか
+- **制約検証**: DDL で宣言された制約（PRIMARY KEY, UNIQUE, CHECK, FOREIGN KEY, NOT NULL）に違反するデータがないか
 
 ### バリデーション（読み込み時）
 
 DataStore コンストラクタでVIEW組み立て時に検証:
 
 - 同名テーブルのカラムスキーマがステージ間で一致するか（UNION ALL 互換性）
-- `config/table_schemas/` の定義と実ファイルのカラムが一致するか
+- `config/table_schemas/` の DDL 定義と実ファイルのカラムが一致するか
 
 ## テーブル結合のスキーマ契約
 
 DataStoreは同名テーブルを全ステージ分 UNION ALL して1つの VIEW にする。全ステージが同一のカラム定義を持つことが要求されるため、`config/table_schemas/` をコンシューマ側の契約として維持し、プロデューサー側の契約は書き込み時バリデーションで実現する。
 
+スキーマ定義は SQL DDL をそのまま記述する。YAML で DDL のサブセットを再発明するのではなく、DuckDB にそのまま渡せる標準 SQL を正統な形式とする。カタログ等のフレームワーク固有メタデータは YAML フィールドとして併記する。
+
 ```yaml
 # config/table_schemas/timeseries.yaml
-columns:
-    uid: { type: varchar, nullable: false }
-    dkey: { type: varchar, nullable: false }
-    frame: { type: int, nullable: false }
-    value: { type: double }
-constraints:
-    primary_key: [uid, dkey, frame]
-catalog: true # sard catalog の出力対象
+ddl: |
+    CREATE TABLE timeseries (
+        uid VARCHAR NOT NULL,
+        dkey VARCHAR NOT NULL REFERENCES dtype(dkey),
+        frame INTEGER CHECK (frame >= 0),
+        value DOUBLE,
+        PRIMARY KEY (uid, dkey, frame)
+    )
+description: "正規化済み時系列データ"
+catalog: true
 ```
 
-- `columns`: カラム名・型・nullable を定義
-- `constraints`: UNION ALL 後に検証される制約。`primary_key`（複合キー可）、`unique` 等
+- `ddl`: SQL DDL（CREATE TABLE 文）。DuckDB にそのまま渡してスキーマ定義・制約検証に使用。NOT NULL, PRIMARY KEY, UNIQUE, CHECK, FOREIGN KEY 等の制約を表現力の上限なく記述可能
+- `description`: テーブルの説明（カタログ出力に使用）
 - `catalog`: `sard catalog` の出力対象とするか（デフォルト: false）。CLI で `--table` を明示指定した場合はそちらが優先
 - 書き込みラッパーが出力前にスキーマとの整合性を検証するため、UNION ALL 互換性チェックに到達する前に捕捉可能
 - 「ステージXがテーブルYにカラムZを提供する」という明示的な宣言は存在しない。stage.yaml の outs セクション（`add_datastore: true` のエントリ）が暗黙的に担う

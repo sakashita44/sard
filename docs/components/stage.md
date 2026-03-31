@@ -169,7 +169,7 @@ data/stages/normalize/timeseries.parquet    ← normalize ステージが出力
 ```
 
 - SSoT は各ステージの出力ファイルであり、静的な設定ファイルではない
-- `config/table_schemas/` の [constraints 定義](datastore.md#テーブル結合のスキーマ契約)に基づき、UNION ALL 後のキー一意性等を検証
+- `config/table_schemas/` の [DDL 定義](datastore.md#テーブル結合のスキーマ契約)に基づき、UNION ALL 後のキー一意性等を検証
 - カタログ出力: `sard catalog` で対象テーブルの内容を一覧表示（詳細は [CLI リファレンス](cli.md#sard-catalog) を参照）
 
 ### DAG循環の回避
@@ -300,12 +300,12 @@ if __name__ == "__main__":
 
 run_stage のエピローグで実施する検証。
 
-| 検証項目                                      | 担当                  | タイミング                                     |
-| --------------------------------------------- | --------------------- | ---------------------------------------------- |
-| outs の変更追跡（ハッシュベース）             | DVC                   | dvc repro / dvc status                         |
-| スキーマ整合性（カラム構成 vs table_schemas） | DataStore write_table | 書き込み時（on_write バリデーション）          |
-| 未生成ファイル（declared − actual）           | run_stage エピローグ  | ステージ実行後 → 例外 → DVC 停止               |
-| 未宣言ファイル（actual − declared）           | run_stage エピローグ  | ステージ実行後 → 警告（config で例外昇格可能） |
+| 検証項目                                 | 担当                  | タイミング                                     |
+| ---------------------------------------- | --------------------- | ---------------------------------------------- |
+| outs の変更追跡（ハッシュベース）        | DVC                   | dvc repro / dvc status                         |
+| スキーマ整合性（カラム構成 vs DDL 定義） | DataStore write_table | 書き込み時（on_write バリデーション）          |
+| 未生成ファイル（declared − actual）      | run_stage エピローグ  | ステージ実行後 → 例外 → DVC 停止               |
+| 未宣言ファイル（actual − declared）      | run_stage エピローグ  | ステージ実行後 → 警告（config で例外昇格可能） |
 
 - エピローグの例外は Python プロセスの非ゼロ終了コードとなり、DVC がステージ失敗と判定してパイプラインを停止する
 - 未宣言ファイルの扱いは `validation: post_run: strict|warn|off` で制御
