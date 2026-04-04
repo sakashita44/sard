@@ -10,7 +10,8 @@ config/                      ← Git管理（プロジェクト設定）
   table_schemas/             ← テーブルごとのスキーマ定義（サブディレクトリ許容）
     timeseries.yaml
     record.yaml
-    dtype.yaml
+    meta/                    ← サブディレクトリによる整理（テーブル名はファイル名で決まる）
+      dtype.yaml
 
 stages/                      ← Git管理（定義側）。再帰走査
   import/                    ← グループ（stage.yaml なし）

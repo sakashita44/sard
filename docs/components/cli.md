@@ -75,7 +75,7 @@ staqkit catalog --table dtype --up-to B  # テーブル指定 + スコープ →
 staqkit catalog > docs/dtype_catalog.md
 ```
 
-`--up-to` は [DataStore.scoped()](datastore.md#db組み立て) と同じ原理で、指定ステージの上流閉包（DAG を遡って到達可能な全ステージ）に出力を限定する。特定ステージの依存範囲だけを確認したい場合に使う。
+`--up-to` は Framework 層の[スコープ解決](datastore.md#db組み立て)と同じ原理で、指定ステージの上流閉包（DAG を遡って到達可能な全ステージ）に出力を限定する。特定ステージの依存範囲だけを確認したい場合に使う。
 
 ### staqkit column
 
